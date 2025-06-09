@@ -4,6 +4,7 @@ from cuv.dep_resolver import resolve_dependencies
 from cuv.cmake_writer import generate_cmake
 
 def main():
+    print("hello world")
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command")
 
