@@ -1,0 +1,26 @@
+[project]
+name = "cuv"
+version = "0.1.0"
+description = "A lightweight C++20 modules package manager with CMake integration"
+authors = [
+  { name = "Tim Wu", email = "xray0h@gmail.com" }
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  "toml>=0.10.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "build", "twine"]
+
+[project.scripts]
+cuv = "cuv.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
