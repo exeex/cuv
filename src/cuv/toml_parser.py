@@ -4,8 +4,9 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 class ProjectConfig:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], project_root: str):
         self.config = config
+        self.project_root = project_root
         
     @property
     def project_name(self) -> str:
@@ -42,7 +43,8 @@ def load_project(path: str) -> ProjectConfig:
         raise FileNotFoundError(f"Project file not found: {path}")
     
     config = toml.load(abs_path)
-    return ProjectConfig(config)
+    project_root = os.path.dirname(abs_path)
+    return ProjectConfig(config, project_root)
 
 if __name__ == "__main__":
     # Test parsing the example project
