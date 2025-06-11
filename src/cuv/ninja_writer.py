@@ -276,7 +276,7 @@ if __name__ == "__main__":
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
     config_path = os.path.join(
-        project_root, "tests", "cuv-test-project", "cproject.toml"
+        project_root, "tests", "cuv-test-project", "cxxproject.toml"
     )
     config = load_project(config_path)
 

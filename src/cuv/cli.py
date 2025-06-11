@@ -27,7 +27,7 @@ def main():
     build_parser.add_argument(
         "--config",
         help="Path to project configuration file",
-        default="cproject.toml"
+        default="cxxproject.toml"
     )
     build_parser.add_argument(
         "--build-dir",
