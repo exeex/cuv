@@ -40,6 +40,18 @@ def main():
         help="Clean build directory before building"
     )
 
+    clean_parser = sub.add_parser("clean", help="Clean build directory")
+    clean_parser.add_argument(
+        "--build-dir",
+        help="Path to build directory",
+        default="build"
+    )
+    clean_parser.add_argument(
+        "--force","-y",
+        action="store_true",
+        help="Force clean without confirmation"
+    )
+
     args = parser.parse_args()
 
     if args.command == "sync":
@@ -58,3 +70,21 @@ def main():
         print(f"Generated build.ninja in {build_dir}")
         generate_build_file(project, str(build_dir), str(build_dir / "build.ninja"))
         subprocess.run(["ninja", "-C", str(build_dir)])
+
+    elif args.command == "clean":
+        build_dir = Path(args.build_dir)
+        if build_dir.exists():
+            if args.force:
+                print(f"Cleaning build directory: {build_dir}")
+                subprocess.run(["rm", "-rf", str(build_dir)])
+                print(f"Build directory {build_dir} has been cleaned.")
+            else:
+                confirm = input(f"Are you sure you want to clean {build_dir}? (y/N): ")
+                if confirm.lower() == 'y':
+                    print(f"Cleaning build directory: {build_dir}")
+                    subprocess.run(["rm", "-rf", str(build_dir)])
+                    print(f"Build directory {build_dir} has been cleaned.")
+                else:
+                    print("Clean operation cancelled.")
+        else:
+            print(f"Build directory {build_dir} does not exist.")
