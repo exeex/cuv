@@ -9,8 +9,9 @@ class ProjectConfig:
     """Project configuration data class."""
     project_name: str
     version: str
-    build_type: str
-    cxx_standard: int
+    cxx_standard: str
+    warnings: str
+    warnings_as_errors: bool
     targets: Dict[str, Dict[str, Any]]
     c_compiler: str
     cxx_compiler: str
@@ -39,17 +40,16 @@ def load_project(path: Union[str, Path]) -> ProjectConfig:
     
     # Parse and validate configuration
     project = config.get('project', {})
-    build_system = config.get('build-system', {})
-    toolchain = build_system.get('toolchain', {})
-    settings = build_system.get('settings', {})
-    compiler = build_system.get('compiler', {})
-    targets = build_system.get('targets', {})
+    targets = project.get('targets', {})
+    toolchain = project.get('toolchain', {})
+    settings = project.get('settings', {})
     
     return ProjectConfig(
         project_name=project.get('name', ''),
         version=project.get('version', ''),
-        build_type=settings.get('build_type', 'Release'),
-        cxx_standard=int(compiler.get('cxx_standard', '20')),
+        cxx_standard=settings.get('cxx_standard', '20'),
+        warnings=settings.get('warnings', 'all'),
+        warnings_as_errors=settings.get('warnings_as_errors', False),
         targets=targets,
         c_compiler=toolchain.get('C_COMPILER', ''),
         cxx_compiler=toolchain.get('CXX_COMPILER', ''),
@@ -68,7 +68,8 @@ if __name__ == "__main__":
         print("=== Project Configuration ===")
         print(f"Project Name: {project.project_name}")
         print(f"Version: {project.version}")
-        print(f"Build Type: {project.build_type}")
+        print(f"Warnings: {project.warnings}")
+        print(f"Warnings as Errors: {project.warnings_as_errors}")
         print(f"C++ Standard: C++{project.cxx_standard}")
         print(f"C Compiler: {project.c_compiler}")
         print(f"C++ Compiler: {project.cxx_compiler}")
