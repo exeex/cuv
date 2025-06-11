@@ -74,11 +74,11 @@ class CompileCommandsWriter:
                     source_type = self.get_source_type(source_file)
                     if source_type in ["ixx", "cppm"]:
                         out_file = self.module_cache_dir / (source_file.stem + ".pcm")
-                        command = f"{flags.cxx} {source_file} -o {out_file} {flags.cxxflags} -I{self.project_root}/include --precompile\n"
+                        command = f"{flags.cxx} {source_file} -o {out_file} {flags.cxxflags} -I{self.project_root}/include --precompile"
                         
                     elif source_type in ["cpp", "cc"]:
                         out_file = self.objects_dir / (source_file.stem + ".o")
-                        command = f"{flags.cxx} {source_file} -o {out_file} {flags.cxxflags} -I{self.project_root}/include\n"
+                        command = f"{flags.cxx} {source_file} -o {out_file} {flags.cxxflags} -I{self.project_root}/include"
 
                     commands.append({
                         "directory": str(self.project_root),

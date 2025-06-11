@@ -1,73 +1,69 @@
 import toml
 import os
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
+from dataclasses import dataclass
 
+@dataclass
 class ProjectConfig:
-    def __init__(self, config: Dict[str, Any], project_root: str):
-        self.config = config
-        self.project_root = project_root
-        
-    @property
-    def project_name(self) -> str:
-        return self.config.get('project', {}).get('name', '')
-    
-    @property
-    def version(self) -> str:
-        return self.config.get('project', {}).get('version', '')
-    
-    @property
-    def build_type(self) -> str:
-        return self.config.get('build-system', {}).get('settings', {}).get('build_type', 'Release')
-    
-    @property
-    def cxx_standard(self) -> int:
-        return int(self.config.get('build-system', {}).get('compiler', {}).get('cxx_standard', '20'))
-    
-    @property
-    def targets(self) -> Dict[str, Dict[str, Any]]:
-        return self.config.get('build-system', {}).get('targets', {})
-    
+    """Project configuration data class."""
+    project_name: str
+    version: str
+    build_type: str
+    cxx_standard: int
+    targets: Dict[str, Dict[str, Any]]
+    c_compiler: str
+    cxx_compiler: str
+    ar: str
+    project_root: Path
+
     def get_target_sources(self, target_name: str) -> List[str]:
+        """Get sources for a specific target."""
         target = self.targets.get(target_name, {})
         return target.get('sources', [])
     
     def get_target_type(self, target_name: str) -> Optional[str]:
+        """Get type of a specific target."""
         target = self.targets.get(target_name, {})
         return target.get('type')
-    
-    @property
-    def c_compiler(self) -> str:
-        """Get the C compiler path."""
-        return self.config.get('build-system', {}).get('toolchain', {}).get('C_COMPILER', '')
-    
-    @property
-    def cxx_compiler(self) -> str:
-        """Get the C++ compiler path."""
-        return self.config.get('build-system', {}).get('toolchain', {}).get('CXX_COMPILER', '')
 
-    @property
-    def ar(self) -> str:
-        """Get the AR archive tool path."""
-        return self.config.get('build-system', {}).get('toolchain', {}).get('AR', '')
+def load_project(path: Union[str, Path]) -> ProjectConfig:
+    """Load and parse a cproject.toml file into a ProjectConfig object."""
 
-def load_project(path: str) -> ProjectConfig:
-    """Load and parse a cproject.toml file."""
-    abs_path = os.path.abspath(path)
-    if not os.path.exists(abs_path):
+    abs_path = Path(path).resolve()
+    if not abs_path.exists():
         raise FileNotFoundError(f"Project file not found: {path}")
     
     config = toml.load(abs_path)
-    project_root = os.path.dirname(abs_path)
-    return ProjectConfig(config, project_root)
+    project_root = abs_path.parent
+    
+    # Parse and validate configuration
+    project = config.get('project', {})
+    build_system = config.get('build-system', {})
+    toolchain = build_system.get('toolchain', {})
+    settings = build_system.get('settings', {})
+    compiler = build_system.get('compiler', {})
+    targets = build_system.get('targets', {})
+    
+    return ProjectConfig(
+        project_name=project.get('name', ''),
+        version=project.get('version', ''),
+        build_type=settings.get('build_type', 'Release'),
+        cxx_standard=int(compiler.get('cxx_standard', '20')),
+        targets=targets,
+        c_compiler=toolchain.get('C_COMPILER', ''),
+        cxx_compiler=toolchain.get('CXX_COMPILER', ''),
+        ar=toolchain.get('AR', ''),
+        project_root=project_root
+    )
 
 if __name__ == "__main__":
     # Test parsing the example project
-    test_project_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                  "tests", "cuv-test-project", "cproject.toml")
+    test_project_path = Path(__file__).parent.parent.parent 
+    toml_path = test_project_path / "tests" / "cuv-test-project" / "cproject.toml"
     
     try:
-        project = load_project(test_project_path)
+        project = load_project(toml_path)
         
         print("=== Project Configuration ===")
         print(f"Project Name: {project.project_name}")
@@ -76,6 +72,7 @@ if __name__ == "__main__":
         print(f"C++ Standard: C++{project.cxx_standard}")
         print(f"C Compiler: {project.c_compiler}")
         print(f"C++ Compiler: {project.cxx_compiler}")
+        print(f"AR: {project.ar}")
         
         print("\n=== Targets ===")
         for target_name in project.targets:
