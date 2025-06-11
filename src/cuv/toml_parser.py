@@ -35,6 +35,21 @@ class ProjectConfig:
     def get_target_type(self, target_name: str) -> Optional[str]:
         target = self.targets.get(target_name, {})
         return target.get('type')
+    
+    @property
+    def c_compiler(self) -> str:
+        """Get the C compiler path."""
+        return self.config.get('build-system', {}).get('toolchain', {}).get('C_COMPILER', '')
+    
+    @property
+    def cxx_compiler(self) -> str:
+        """Get the C++ compiler path."""
+        return self.config.get('build-system', {}).get('toolchain', {}).get('CXX_COMPILER', '')
+
+    @property
+    def ar(self) -> str:
+        """Get the AR archive tool path."""
+        return self.config.get('build-system', {}).get('toolchain', {}).get('AR', '')
 
 def load_project(path: str) -> ProjectConfig:
     """Load and parse a cproject.toml file."""
@@ -59,6 +74,8 @@ if __name__ == "__main__":
         print(f"Version: {project.version}")
         print(f"Build Type: {project.build_type}")
         print(f"C++ Standard: C++{project.cxx_standard}")
+        print(f"C Compiler: {project.c_compiler}")
+        print(f"C++ Compiler: {project.cxx_compiler}")
         
         print("\n=== Targets ===")
         for target_name in project.targets:
