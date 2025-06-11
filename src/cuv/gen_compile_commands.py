@@ -12,6 +12,8 @@ class BuildFlags:
     ar: str
     cxxflags: str
     ldflags: str
+    include_path: str
+    system_include_path: str
 
 class CompileCommandsWriter:
     def __init__(
@@ -47,6 +49,8 @@ class CompileCommandsWriter:
             ar=self.config.ar,
             cxxflags="-std=c++20 -Wall -O2",
             ldflags="",
+            include_path="",
+            system_include_path="",
         )
 
     def get_source_type(self, source_file: Path) -> str:
@@ -65,29 +69,53 @@ class CompileCommandsWriter:
         """Write build statements for object files."""
         flags = self.get_build_flags()
 
-        commands: List[Dict[str, str]] = []
+        command_dict: Dict[str, Dict[str, str]] = {}
         for target_name, target in self.config.targets.items():
             sources = target.get("sources", [])
-
+            all_object_files = []
             for source_pattern in sources:
                 for source_file in Path(self.project_root).glob(source_pattern):
                     source_type = self.get_source_type(source_file)
                     if source_type in ["ixx", "cppm"]:
                         out_file = self.module_cache_dir / (source_file.stem + ".pcm")
-                        command = f"{flags.cxx} {source_file} -o {out_file} {flags.cxxflags} -I{self.project_root}/include --precompile"
+                        command = f"{flags.cxx} {source_file} -o {out_file} {flags.cxxflags} --precompile"
+                        if flags.include_path:
+                            command += f" -I{flags.include_path}"
+                        if flags.system_include_path:
+                            command += f" -isystem {flags.system_include_path}"
                         
                     elif source_type in ["cpp", "cc"]:
                         out_file = self.objects_dir / (source_file.stem + ".o")
-                        command = f"{flags.cxx} {source_file} -o {out_file} {flags.cxxflags} -I{self.project_root}/include"
+                        command = f"{flags.cxx} {source_file} -o {out_file} {flags.cxxflags}"
+                        if flags.include_path:
+                            command += f" -I{flags.include_path}"
+                        if flags.system_include_path:
+                            command += f" -isystem {flags.system_include_path}"
+                        all_object_files.append(str(out_file))
 
-                    commands.append({
-                        "directory": str(self.project_root),
-                        "file": str(source_file.relative_to(self.project_root)),
-                        "command": command,
-                        "output": str(out_file),
-                    })
+                    key = str(out_file)
+                    # make sure unique
+                    if key not in command_dict:
+                        command_dict[key] = {
+                            "directory": str(self.project_root),
+                            "file": str(source_file.relative_to(self.project_root)),
+                            "command": command,
+                            "output": str(out_file),
+                    }
+            
+            # add target
+            # if target.get("type") == "executable":
+            #     assert target_name not in command_dict
+            #     command = f"{flags.cxx} {" ".join(all_object_files)} -o {out_file} {flags.cxxflags} -I{self.project_root}/include"
+            #     command_dict[target_name] = {
+            #             "directory": str(self.project_root),
+            #             "file": all_object_files,
+            #             "command": command,
+            #             "output": str(out_file),
+            # }
+            
 
-        return commands
+        return list(command_dict.values())
 
 
 
