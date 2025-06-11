@@ -6,7 +6,7 @@ import os
 import json
 from pathlib import Path
 from typing import List, Dict, Any, TextIO, Union
-from toml_parser import ProjectConfig
+from cuv.toml_parser import ProjectConfig
 from cuv.gen_compile_commands import CompileCommandsWriter
 from cuv.dep_resolver import resolve_dependencies
 from dataclasses import dataclass
@@ -63,11 +63,9 @@ class NinjaWriter:
         self.config = project_config
         self.project_root = Path(project_config.project_root)
         self.build_dir = Path(build_dir)
-        self.objects_dir = (self.build_dir / "objects").relative_to(self.build_dir)
-        self.targets_dir = (self.build_dir / "targets").relative_to(self.build_dir)
-        self.module_cache_dir = (self.build_dir / "module_cache").relative_to(
-            self.build_dir
-        )
+        self.objects_dir = self.build_dir / "objects"
+        self.targets_dir = self.build_dir / "targets"
+        self.module_cache_dir = self.build_dir / "module_cache"
 
     def write_build_vars(self, f: TextIO):
         """Write build variables."""
@@ -78,7 +76,8 @@ class NinjaWriter:
             cxxflags="-std=c++20 -Wall -O2",
             ldflags="",
         )
-        module_cache_dir = self.build_dir / "module_cache"
+        
+        module_cache_dir = self.module_cache_dir.relative_to(self.build_dir)
         f.write("# === build variables ===\n")
         f.write(f"cxx = {flags.cxx}\n")
         f.write(f"ar = {flags.ar}\n")
@@ -131,12 +130,16 @@ class NinjaWriter:
             f.write("\n")
 
     def gen_task_deps_list(self):
+
+        objects_dir = self.objects_dir.relative_to(self.build_dir)
+        targets_dir = self.targets_dir.relative_to(self.build_dir)
+        module_cache_dir = self.module_cache_dir.relative_to(self.build_dir)
         writer = CompileCommandsWriter(
             self.config,
             self.build_dir,
-            self.objects_dir,
-            self.targets_dir,
-            self.module_cache_dir,
+            objects_dir,
+            targets_dir,
+            module_cache_dir,
         )
 
         os.makedirs(self.build_dir, exist_ok=True)
@@ -157,6 +160,9 @@ class NinjaWriter:
     def write_target_builds(self, f: TextIO):
         """Write build statements for object files."""
 
+        objects_dir = self.objects_dir.relative_to(self.build_dir)
+        targets_dir = self.targets_dir.relative_to(self.build_dir)
+        module_cache_dir = self.module_cache_dir.relative_to(self.build_dir)
         # register ninja tasks (without deps and topo sort)
         ninja_task_dict: Dict[str, NinjaTask] = {}
         ninja_target_list: List[str] = []
@@ -170,26 +176,26 @@ class NinjaWriter:
                     match src_type:
                         case SourceType.CppModule:
                             tar_file = str(
-                                self.module_cache_dir / (src_file.stem + ".pcm")
+                                module_cache_dir / (src_file.stem + ".pcm")
                             )
                             ninja_task_dict[tar_file] = NinjaTask(
                                 output=tar_file, input=[str(src_file)], rule="cxx_module_compile", deps=[]
                             )
                         case SourceType.CppSource:
-                            tar_file = str(self.objects_dir / (src_file.stem + ".o"))
+                            tar_file = str(objects_dir / (src_file.stem + ".o"))
                             ninja_task_dict[tar_file] = NinjaTask(
                                 output=tar_file, input=[str(src_file)], rule="cxx_compile", deps=[]
                             )
                             target_obj_files.append(tar_file)
 
             if target.get("type") == "library":
-                tar_file = str(self.targets_dir / f"lib{target_name}.a")
+                tar_file = str(targets_dir / f"lib{target_name}.a")
                 ninja_target_list.append(NinjaTask(
                     output=tar_file, input=target_obj_files, rule="cxx_static_library", deps=[]
                 ))
 
             elif target.get("type") == "executable":
-                tar_file = str(self.targets_dir / target_name)
+                tar_file = str(targets_dir / target_name)
                 ninja_target_list.append(NinjaTask(
                     output=tar_file, input=target_obj_files, rule="cxx_link", deps=[]
                 ))
@@ -225,13 +231,14 @@ class NinjaWriter:
 
     def write_footer(self, f: TextIO):
         """Write ninja build file footer."""
+        targets_dir = self.targets_dir.relative_to(self.build_dir)
         f.write("\n# Default target\n")
         for target_name, target in self.config.targets.items():
             if target.get("type") == "library":
-                lib_file = str(self.targets_dir / f"lib{target_name}.a")
+                lib_file = str(targets_dir / f"lib{target_name}.a")
                 f.write(f"default {lib_file}\n")
             elif target.get("type") == "executable":
-                exe_file = str(self.targets_dir / target_name)
+                exe_file = str(targets_dir / target_name)
                 f.write(f"default {exe_file}\n")
 
 

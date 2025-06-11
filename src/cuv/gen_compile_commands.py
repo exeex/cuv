@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import List, Dict, Any, TextIO, Union
-from toml_parser import ProjectConfig
+from cuv.toml_parser import ProjectConfig
 from dataclasses import dataclass
 import json
 
@@ -132,10 +132,6 @@ def generate_compile_commands(
     )
     writer = CompileCommandsWriter(project_config, build_dir, objects_dir, targets_dir, module_cache_dir)
 
-    # Create build directory if it doesn't exist
-    os.makedirs(build_dir, exist_ok=True)
-
-    # Write main build file
     with open(build_dir / "compile_commands.json", "w") as f:
         json.dump(writer.gen_build_commands(), f, indent=2)
 
