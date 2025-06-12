@@ -1,5 +1,6 @@
 import argparse
 from cuv.toml_parser import load_project
+from cuv.new_project import create_new_project
 from cuv.dep_resolver import resolve_dependencies
 from cuv.ninja_writer import generate_build_file
 from pathlib import Path
@@ -7,6 +8,27 @@ import subprocess
 def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", help="subcommands", required=True)
+
+    new_parser = sub.add_parser("new", help="Create a new CUV project")
+    new_parser.add_argument(
+        "project_name",
+        help="Name of the new project"
+    )
+    new_parser.add_argument(
+        "--directory",
+        help="Directory to create the project in",
+        default="."
+    )
+    new_parser.add_argument(
+        "--cxx-standard",
+        help="C++ standard version (default: 20)",
+        default="20"
+    )
+    new_parser.add_argument(
+        "--compiler",
+        help="C++ compiler to use (default: system default)",
+        default=None
+    )
 
     sync_parser = sub.add_parser("sync", help="Resolve and sync project dependencies")
     build_parser = sub.add_parser("build", help="Build the project using ninja")
@@ -54,7 +76,16 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "sync":
+    if args.command == "new":
+        project_name = args.project_name
+        project_dir = Path(args.directory) / project_name
+        create_new_project(
+            project_name,
+            project_dir,
+            cxx_standard=args.cxx_standard,
+            compiler=args.compiler
+        )
+    elif args.command == "sync":
         project = load_project(args.config)
         if args.force:
             print("Force re-syncing dependencies...")
