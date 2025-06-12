@@ -6,10 +6,10 @@
 #
 set -e
 
-CMAKE_VERSION=${1:-"none"}
+NINJA_VERSION=${1:-"none"}
 
-if [ "${CMAKE_VERSION}" = "none" ]; then
-    echo "No CMake version specified, skipping CMake reinstallation"
+if [ "${NINJA_VERSION}" = "none" ]; then
+    echo "No Ninja version specified, skipping Ninja reinstallation"
     exit 0
 fi
 
@@ -26,33 +26,34 @@ cleanup() {
 trap cleanup EXIT
 
 
-echo "Installing CMake..."
-apt-get -y purge --auto-remove cmake
-mkdir -p /opt/cmake
+echo "Installing Ninja..."
+apt-get -y purge --auto-remove ninja-build
+mkdir -p /opt/ninja
 
 architecture=$(dpkg --print-architecture)
 case "${architecture}" in
     arm64)
-        ARCH=aarch64 ;;
+        NINJA_BINARY_NAME="ninja-linux-aarch64.zip" ;;
     amd64)
-        ARCH=x86_64 ;;
+        NINJA_BINARY_NAME="ninja-linux.zip" ;;
     *)
         echo "Unsupported architecture ${architecture}."
         exit 1
         ;;
 esac
 
-CMAKE_BINARY_NAME="cmake-${CMAKE_VERSION}-linux-${ARCH}.sh"
-CMAKE_CHECKSUM_NAME="cmake-${CMAKE_VERSION}-SHA-256.txt"
-TMP_DIR=$(mktemp -d -t cmake-XXXXXXXXXX)
+# CMAKE_CHECKSUM_NAME="cmake-${NINJA_VERSION}-SHA-256.txt"
+TMP_DIR=$(mktemp -d -t ninja-XXXXXXXXXX)
 
 echo "${TMP_DIR}"
 cd "${TMP_DIR}"
 
-curl -sSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${CMAKE_BINARY_NAME}" -O
-curl -sSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${CMAKE_CHECKSUM_NAME}" -O
+curl -sSL "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/${NINJA_BINARY_NAME}" -O
+# curl -sSL "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/${NINJA_CHECKSUM_NAME}" -O
+# sha256sum -c --ignore-missing "${NINJA_CHECKSUM_NAME}"
+unzip ${NINJA_BINARY_NAME}
+cp ./ninja /usr/local/bin/ninja
+which ninja
+/usr/local/bin/ninja --version
 
-sha256sum -c --ignore-missing "${CMAKE_CHECKSUM_NAME}"
-sh "${TMP_DIR}/${CMAKE_BINARY_NAME}" --prefix=/opt/cmake --skip-license
-
-ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+rm -rf ${TMP_DIR}
